@@ -1,0 +1,52 @@
+
+Script extract_miljonprogrammet.py in python3 started at 2026-03-19 17:23:22
+Fetching DeSO 2018 boundaries from SCB WFS...
+  Received 5984 features
+  Coordinates appear to be EPSG:3006 — no reprojection needed
+  Parsed 5984 DeSO polygons
+  Spatial index built (252 grid cells)
+
+Opening: /Users/mariekaul/Dropbox (Personal)/Academia Corner (active)/research projects (formal)/dropbox-million-program/million-project/1_data/gis_extraction/source/../input/Miljonprogrammet.gdb
+/opt/homebrew/lib/python3.14/site-packages/osgeo/gdal.py:606: FutureWarning: Neither gdal.UseExceptions() nor gdal.DontUseExceptions() has been explicitly called. In GDAL 4.0, exceptions will be enabled by default.
+  warnings.warn(
+Layers in geodatabase:
+  [0] FlerBo_BoRatt_region (8906 features)
+  [1] FlerBo_HyrRatt_region (19741 features)
+  [2] SmaHus_AgandeRatt_region (191584 features)
+  [3] Bostadsbestånd_aggregerat_20km_hexagoner_Flerbostadshus_Bostadsrätt (1478 features)
+  [4] Bostadsbestånd_aggregerat_20km_hexagoner_Flerbostadhus_Hyresrätt (1478 features)
+  [5] Bostadsbestånd_aggregerat_20km_hexagoner_Småhus_Äganderätt (1478 features)
+  [6] B1_rutor_Bef_ålder_20131231 (202408 features)
+
+Extracting: FlerBo_HyrRatt_region → tenure_type='rental'
+  FlerBo_HyrRatt_region: 19741 features
+
+Extracting: FlerBo_BoRatt_region → tenure_type='tenant_owned'
+  FlerBo_BoRatt_region: 8906 features
+
+Extracting: SmaHus_AgandeRatt_region → tenure_type='owner_occupied'
+  SmaHus_AgandeRatt_region: 191584 features
+    25000/191584...
+    50000/191584...
+    75000/191584...
+    100000/191584...
+    125000/191584...
+    150000/191584...
+    175000/191584...
+  Warning: 55/191584 features had no DeSO match
+
+Total grid rows: 220231
+Written: miljonprogrammet_grid.csv (220231 rows)
+Written: miljonprogrammet_deso.csv (13942 rows)
+
+── Summary ──────────────────────────────────────────────
+  rental: 19741 grid cells, 19741 matched to DeSO (100%)
+  owner_occupied: 191584 grid cells, 191529 matched to DeSO (99%)
+  tenant_owned: 8906 grid cells, 8906 matched to DeSO (100%)
+Done!
+Script extract_miljonprogrammet.py finished successfully at 2026-03-19 17:26:35
+
+The following files were created in extract_miljonprogrammet.py:
+miljonprogrammet_grid.csv 
+
+make.sh finished at 2026-03-19 17:26:35
