@@ -1,2 +1,6 @@
 *.log merge=binary
 * text=auto
+
+# Git LFS
+*.gdbtable filter=lfs diff=lfs merge=lfs -text
+*.csv filter=lfs diff=lfs merge=lfs -text
