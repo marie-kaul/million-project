@@ -24,9 +24,14 @@ echo -e "\n\nMaking module \033[35m${MODULE}\033[0m with shell ${SHELL}"
 source "${REPO_ROOT}/local_env.sh"
 source "${REPO_ROOT}/lib/shell/run_python.sh"
 
-# Clear output directory
-rm -rf "${MAKE_SCRIPT_DIR}/output"
-mkdir -p "${MAKE_SCRIPT_DIR}/output"
+# Clear output directory (skip if RESUME=1 to allow partial re-runs)
+if [[ "${RESUME:-0}" == "1" ]]; then
+    echo -e "  \033[0;34mResume mode\033[0m: keeping existing output files (scripts will skip completed steps)"
+    mkdir -p "${MAKE_SCRIPT_DIR}/output"
+else
+    rm -rf "${MAKE_SCRIPT_DIR}/output"
+    mkdir -p "${MAKE_SCRIPT_DIR}/output"
+fi
 
 # Add symlink input files to local /input/ directory
 (   cd "${MAKE_SCRIPT_DIR}"
@@ -39,11 +44,7 @@ echo -e "\nmake.sh started at $(date '+%Y-%m-%d %H:%M:%S')"
 (
 cd "${MAKE_SCRIPT_DIR}/source"
 
-run_python download_education.py       "${LOGFILE}" || exit 1
-run_python download_income.py          "${LOGFILE}" || exit 1
-run_python download_households.py      "${LOGFILE}" || exit 1
-run_python download_employment.py      "${LOGFILE}" || exit 1
-run_python download_housing_tenure.py  "${LOGFILE}" || exit 1
+run_python download_scb_panel.py       "${LOGFILE}" || exit 1
 run_python prepare_crime.py            "${LOGFILE}" || exit 1
 ) || false
 

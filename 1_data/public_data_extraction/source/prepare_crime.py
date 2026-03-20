@@ -166,6 +166,11 @@ def _parse_crime_against_life(df_raw: pd.DataFrame, muni_codes: dict) -> pd.Data
 def main():
     os.makedirs(OUTPUT_DIR, exist_ok=True)
 
+    outputs = [os.path.join(OUTPUT_DIR, f) for f in ("crime_total_municipality.csv", "crime_against_life_municipality.csv")]
+    if all(os.path.exists(p) for p in outputs):
+        print("Checkpoint: all crime outputs already exist — skipping.")
+        return
+
     if not CRIME_DIR:
         print("Warning: EXTERNAL_PATHS not set. Cannot locate crime data files.")
         sys.exit(1)

@@ -36,22 +36,38 @@ def fetch_metadata(path: str) -> dict:
         return json.loads(resp.read().decode("utf-8"))
 
 
-def fetch_table(path: str, query: dict) -> dict:
-    """POST a selection query to an SCB table and return the JSON response."""
+def fetch_table(path: str, query: dict, max_retries: int = 4) -> dict:
+    """
+    POST a selection query to an SCB table and return the JSON response.
+    Retries up to max_retries times on timeout or 429/5xx errors with exponential backoff.
+    """
     url = SCB_BASE + path.lstrip("/")
     payload = json.dumps(query).encode("utf-8")
-    _throttle()
-    req = urllib.request.Request(
-        url,
-        data=payload,
-        headers={"Content-Type": "application/json", "User-Agent": "python/scb_utils"},
-    )
-    try:
-        with urllib.request.urlopen(req, timeout=120) as resp:
-            return json.loads(resp.read().decode("utf-8"))
-    except urllib.error.HTTPError as e:
-        body = e.read().decode("utf-8", errors="replace")
-        raise RuntimeError(f"HTTP {e.code} for {url}: {body[:500]}") from e
+    last_exc: Exception | None = None
+    for attempt in range(max_retries + 1):
+        if attempt > 0:
+            wait = min(2 ** attempt, 30)
+            print(f"  Retry {attempt}/{max_retries} after {wait}s (prev: {last_exc})")
+            time.sleep(wait)
+        _throttle()
+        req = urllib.request.Request(
+            url,
+            data=payload,
+            headers={"Content-Type": "application/json", "User-Agent": "python/scb_utils"},
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=120) as resp:
+                return json.loads(resp.read().decode("utf-8"))
+        except urllib.error.HTTPError as e:
+            body = e.read().decode("utf-8", errors="replace")
+            if e.code in (429, 500, 502, 503, 504):
+                last_exc = RuntimeError(f"HTTP {e.code}")
+                continue  # retry
+            raise RuntimeError(f"HTTP {e.code} for {url}: {body[:500]}") from e
+        except (TimeoutError, OSError) as e:
+            last_exc = e
+            continue  # retry on timeout/network errors
+    raise RuntimeError(f"Failed after {max_retries} retries for {url}: {last_exc}")
 
 
 def parse_to_df(response: dict) -> pd.DataFrame:
@@ -143,14 +159,74 @@ def save_raw(data: Any, var_name: str, level: str, raw_dir: str) -> None:
 def all_values_query(metadata: dict) -> dict:
     """
     Build a query dict that selects all values for every variable in a table.
-    Uses filter="all" which is valid for SCB API v1.
+
+    Uses filter="item" with the explicit value list from the metadata.
+    ContentsCode is omitted from the query — the API returns all content codes
+    automatically when it's absent, and including it causes HTTP 400 errors.
     """
     selection = []
     for var in metadata.get("variables", []):
+        if var["code"] == "ContentsCode":
+            continue  # omitting ContentsCode lets the API return all measures
+        values = var.get("values", [])
         selection.append(
-            {"code": var["code"], "selection": {"filter": "all", "values": []}}
+            {"code": var["code"], "selection": {"filter": "item", "values": values}}
         )
     return {"query": selection, "response": {"format": "json"}}
+
+
+MAX_CELLS = 100_000  # conservative limit (SCB hard limit is ~150k)
+
+
+def fetch_table_all(path: str, metadata: dict) -> dict:
+    """
+    Fetch an entire SCB table, automatically chunking by region values if needed
+    to stay under the per-request cell limit. Returns a merged 'data' format response.
+    """
+    variables = metadata.get("variables", [])
+
+    # Find the region variable and compute cells-per-region
+    region_var = next((v for v in variables if v["code"] == "Region"), None)
+    if region_var is None:
+        # No region dimension — just fetch directly
+        return fetch_table(path, all_values_query(metadata))
+
+    region_values = region_var["values"]
+    # Cells per region = product of all other non-ContentsCode dimensions
+    cells_per_region = 1
+    for v in variables:
+        if v["code"] not in ("Region", "ContentsCode"):
+            cells_per_region *= max(len(v.get("values", [])), 1)
+
+    chunk_size = max(1, MAX_CELLS // cells_per_region)
+    chunks = [region_values[i: i + chunk_size] for i in range(0, len(region_values), chunk_size)]
+
+    if len(chunks) == 1:
+        return fetch_table(path, all_values_query(metadata))
+
+    print(f"  Table has {len(region_values)} regions × {cells_per_region} cells each"
+          f" → fetching in {len(chunks)} chunks of ≤{chunk_size} regions")
+
+    all_rows = []
+    columns = None
+    for i, chunk in enumerate(chunks):
+        print(f"    Chunk {i + 1}/{len(chunks)} ({len(chunk)} regions)...")
+        # Build query for this chunk
+        selection = []
+        for var in variables:
+            if var["code"] == "ContentsCode":
+                continue
+            if var["code"] == "Region":
+                selection.append({"code": "Region", "selection": {"filter": "item", "values": chunk}})
+            else:
+                selection.append({"code": var["code"], "selection": {"filter": "item", "values": var.get("values", [])}})
+        query = {"query": selection, "response": {"format": "json"}}
+        resp = fetch_table(path, query)
+        if columns is None:
+            columns = resp.get("columns", [])
+        all_rows.extend(resp.get("data", []))
+
+    return {"columns": columns, "data": all_rows, "comments": []}
 
 
 def standardise_region_cols(df: pd.DataFrame, region_col: str, level: str) -> pd.DataFrame:
