@@ -34,7 +34,7 @@ bash 1_data/gis_extraction/make.sh
 
 ## Input
 
-- **Source:** `../../0_raw/Miljonprogrammet.gdb`
+- **Source:** `$EXTERNAL_PATHS[0]/0_raw/Miljonprogrammet.gdb` (external data directory)
 - **Format:** ESRI File Geodatabase (EPSG:3006, SWEREF 99 TM)
 - **Contents:** 7 layers (this module uses the 3 grid layers)
 

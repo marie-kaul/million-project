@@ -16,7 +16,7 @@
 #       "../examples/inputs_for_examples -> examples"
 # ==============================================================================
 INPUT_FILES=(
-    "../../0_raw/Miljonprogrammet.gdb -> Miljonprogrammet.gdb"
+    "${EXTERNAL_PATHS[0]}/0_raw/Miljonprogrammet.gdb -> Miljonprogrammet.gdb"
 )
 
 # Path to current module

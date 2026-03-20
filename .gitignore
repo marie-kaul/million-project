@@ -5,6 +5,7 @@
 # User-specific external paths
 /external
 output_local/
+/0_raw
 
 # Template configuration file
 /local_env.sh
