@@ -38,14 +38,15 @@ TABLES = [
         "muni": {"path": "UF/UF0506/UF0506B/Utbildning"},
         "education_level_cols": ["UtbildningsNiva", "UtbNiva", "SUN2000Niva"],
     },
-    {
-        "name": "income",
-        "deso": {"path": "HE/HE0110/HE0110I/Tab4InkDesoRegso"},
-        "muni": [
-            {"path": "HE/HE0110/HE0110A/NetInk02", "label": "net_income"},
-            {"path": "HE/HE0110/HE0110A/SamForvInk1", "label": "earned_income"},
-        ],
-    },
+    # Income table disabled — SCB API returns 403 Forbidden on HE/HE0110/HE0110I/Tab4InkDesoRegso
+    # {
+    #     "name": "income",
+    #     "deso": {"path": "HE/HE0110/HE0110I/Tab4InkDesoRegso"},
+    #     "muni": [
+    #         {"path": "HE/HE0110/HE0110A/NetInk02", "label": "net_income"},
+    #         {"path": "HE/HE0110/HE0110A/SamForvInk1", "label": "earned_income"},
+    #     ],
+    # },
     {
         "name": "households",
         "deso": {"path": "BE/BE0101/BE0101Y/HushallDesoTyp", "note": "type_only_deso"},
